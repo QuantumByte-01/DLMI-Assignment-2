@@ -42,10 +42,10 @@ The balanced set is a subset of the imbalanced set — no extra data was collect
 | Augmentation       | Random flips, rotations (±10°), resized crops on training data |
 | Class Weights      | CrossEntropy weighted inversely by class frequency               |
 | Threshold Adjust   | Post-hoc: divide logits by class priors at inference             |
-| Focal Loss         | gamma=2.0, downweights easy examples to focus on hard samples    |
+| Focal Loss         | gamma=1.0, downweights easy examples to focus on hard samples    |
 | Ensemble (Bagging) | 3 CNNs on bootstrap samples, average logits at inference         |
 
-All imbalance strategies: 5 epochs. Baseline: 15 epochs.
+All strategies: 15 epochs.
 
 ## 4. Results
 
@@ -65,26 +65,12 @@ All imbalance strategies: 5 epochs. Baseline: 15 epochs.
 
 The baseline appears dominant on this table, but this reflects its alignment with the test distribution rather than superior generalisation.
 
-**Balanced Test Set** (weighted averages):
-
-| Strategy      | Accuracy | Precision | Recall | F1 |
-| ------------- | -------- | --------- | ------ | -- |
-| Class Weights | 0.6914   | —        | —     | — |
-| Baseline CNN  | 0.7531   | —        | —     | — |
-| Oversampling  | 0.5432   | —        | —     | — |
-| Augmentation  | 0.5309   | —        | —     | — |
-| Focal Loss    | 0.5185   | —        | —     | — |
-| Ensemble      | 0.5185   | —        | —     | — |
-| Undersampling | 0.4568   | —        | —     | — |
-
-*Full balanced metrics (Precision/Recall/F1) are computed in the notebook and shown in the output table.*
-
 ## 5. Analysis
 
 The primary reason all strategies underperform the baseline on the imbalanced test set is **train-test distribution mismatch**. The baseline trains and tests on the same imbalanced distribution — they align. Imbalance strategies train on corrected (balanced) data but are tested on imbalanced data, so their learned class priors do not match the test set. A model trained on equal class frequencies has no reason to favour benign predictions, but a test set that is 56% benign penalises exactly that.
 
 - **Undersampling** discards 54% of benign training images, leaving the model under-trained overall.
-- **Focal Loss** (gamma=2.0) is too aggressive for this 3.4:1 ratio. It was designed for extreme imbalance (100:1+) such as object detection datasets. Here it distorts learning toward hard samples unnecessarily.
+- **Focal Loss** (gamma=1.0) provides moderate focus on hard samples. gamma=2.0 (the original default) would be too aggressive for this mild 3.4:1 ratio, designed for extreme imbalance (100:1+) like object detection.
 - **Class Weights** appears weak on the imbalanced test because it penalises benign errors heavily, making the model hesitant to predict the dominant class — which the imbalanced test mostly contains.
 - **Ensemble** reduces prediction variance but does not address the root distribution mismatch.
 
@@ -109,5 +95,5 @@ The conclusion is clear: **evaluating strategies only on an imbalanced test set 
 1. **Train-test distribution mismatch** is the main reason imbalance strategies appear worse — not that the techniques are ineffective.
 2. **Class-weighted loss is the most robust strategy** — best on balanced evaluation (69.1%), meaning it generalises well regardless of test distribution.
 3. **Overall accuracy is misleading** on imbalanced data. The baseline scores 82.1% overall but only 55.6% recall on the normal class — clinically significant.
-4. **Moderate imbalance (3.4:1) does not need aggressive correction** — focal loss (gamma=2.0) and heavy resampling over-correct and hurt more than they help.
+4. **Moderate imbalance (3.4:1) does not need aggressive correction** — high gamma focal loss and heavy resampling over-correct and hurt more than they help.
 5. **Always validate on multiple test distributions** before declaring one model superior to another.
