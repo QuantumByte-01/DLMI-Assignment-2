@@ -65,6 +65,19 @@ All imbalance strategies: 5 epochs. Baseline: 15 epochs.
 
 The baseline appears dominant on this table, but this reflects its alignment with the test distribution rather than superior generalisation.
 
+**Balanced Test Set** (weighted averages):
+
+| Strategy      | Accuracy | Precision | Recall | F1 |
+| ------------- | -------- | --------- | ------ | -- |
+| Class Weights | 0.6914   | —        | —     | — |
+| Baseline CNN  | 0.7531   | —        | —     | — |
+| Oversampling  | 0.5432   | —        | —     | — |
+| Augmentation  | 0.5309   | —        | —     | — |
+| Focal Loss    | 0.5185   | —        | —     | — |
+| Ensemble      | 0.5185   | —        | —     | — |
+| Undersampling | 0.4568   | —        | —     | — |
+
+*Full balanced metrics (Precision/Recall/F1) are computed in the notebook and shown in the output table.*
 
 ## 5. Analysis
 
