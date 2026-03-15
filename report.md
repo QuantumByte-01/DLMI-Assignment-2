@@ -14,19 +14,19 @@ Two test sets were used for evaluation:
 
 **Imbalanced test set** (156 samples, mirrors natural distribution):
 
-| Class     | Count | %     |
-| --------- | ----- | ----- |
-| Benign    | 87    | 55.8% |
-| Malignant | 42    | 26.9% |
-| Normal    | 27    | 17.3% |
+| Class | Count | % |
+|---|---|---|
+| Benign | 87 | 55.8% |
+| Malignant | 42 | 26.9% |
+| Normal | 27 | 17.3% |
 
 **Balanced test set** (81 samples, 27 per class drawn from above):
 
-| Class     | Count | %     |
-| --------- | ----- | ----- |
-| Benign    | 27    | 33.3% |
-| Malignant | 27    | 33.3% |
-| Normal    | 27    | 33.3% |
+| Class | Count | % |
+|---|---|---|
+| Benign | 27 | 33.3% |
+| Malignant | 27 | 33.3% |
+| Normal | 27 | 33.3% |
 
 The balanced set is a subset of the imbalanced set — no extra data was collected. It is used to assess whether a strategy's performance holds under a fair, equal-class evaluation.
 
@@ -34,66 +34,62 @@ The balanced set is a subset of the imbalanced set — no extra data was collect
 
 **Model (SimpleCNN):** Conv(1→32) → Conv(32→64) → Conv(64→128), each with ReLU + MaxPool. FC(128→128) → Dropout(0.5) → FC(128→3). Adam lr=0.001. Input: 128×128 grayscale.
 
-| Strategy           | Description                                                      |
-| ------------------ | ---------------------------------------------------------------- |
-| Baseline           | CrossEntropy, imbalanced training, 15 epochs                     |
-| Oversampling       | WeightedRandomSampler (replacement=True), balanced batches       |
-| Undersampling      | WeightedRandomSampler (replacement=False), capped to min class   |
-| Augmentation       | Random flips, rotations (±10°), resized crops on training data |
-| Class Weights      | CrossEntropy weighted inversely by class frequency               |
-| Threshold Adjust   | Post-hoc: divide logits by class priors at inference             |
-| Focal Loss         | gamma=1.0, downweights easy examples to focus on hard samples    |
-| Ensemble (Bagging) | 3 CNNs on bootstrap samples, average logits at inference         |
-
-All strategies: 15 epochs.
+| Strategy | Description |
+|---|---|
+| Baseline | CrossEntropy, imbalanced training, 15 epochs |
+| Oversampling | WeightedRandomSampler (replacement=True), balanced batches |
+| Undersampling | WeightedRandomSampler (replacement=False), capped to min class |
+| Augmentation | Random flips, rotations (±10°), resized crops on training data |
+| Class Weights | CrossEntropy weighted inversely by class frequency |
+| Threshold Adjust | Post-hoc: divide logits by class priors at inference |
+| Focal Loss | gamma=1.0, downweights easy examples to focus on hard samples |
+| Ensemble (Bagging) | 3 CNNs on bootstrap samples, average logits at inference |
 
 ## 4. Results
 
 **Imbalanced Test Set** (weighted averages):
 
-| Strategy           | Accuracy | Precision | Recall | F1     |
-| ------------------ | -------- | --------- | ------ | ------ |
-| Baseline CNN       | 0.8205   | 0.8286    | 0.8205 | 0.8151 |
-| Ensemble (Bagging) | 0.6859   | 0.5670    | 0.6859 | 0.6194 |
-| Augmentation       | 0.6795   | 0.5828    | 0.6795 | 0.6075 |
-| Focal Loss         | 0.6603   | 0.5455    | 0.6603 | 0.5956 |
-| Oversampling       | 0.6218   | 0.6000    | 0.6218 | 0.6048 |
-| Class Weights      | 0.6090   | 0.7779    | 0.6090 | 0.6246 |
-| Undersampling      | 0.5833   | 0.5028    | 0.5833 | 0.5348 |
+| Strategy | Accuracy | Precision | Recall | F1 |
+|---|---|---|---|---|
+| Class Weights | 0.8141 | 0.8207 | 0.8141 | 0.8138 |
+| Baseline CNN | 0.7692 | 0.7771 | 0.7692 | 0.7673 |
+| Ensemble (Bagging) | 0.7692 | 0.7830 | 0.7692 | 0.7504 |
+| Oversampling | 0.7436 | 0.7438 | 0.7436 | 0.7388 |
+| Focal Loss | 0.7436 | 0.7540 | 0.7436 | 0.7410 |
+| Undersampling | 0.7244 | 0.7322 | 0.7244 | 0.7140 |
+| Threshold Adjust | 0.7244 | 0.7539 | 0.7244 | 0.7256 |
+| Augmentation | 0.6987 | 0.7454 | 0.6987 | 0.6555 |
 
-**Baseline per-class recall:** benign 93.1%, malignant 76.2%, normal 55.6%
-
-The baseline appears dominant on this table, but this reflects its alignment with the test distribution rather than superior generalisation.
+**Baseline per-class recall:** benign 80.5%, malignant 83.3%, normal 55.6%
 
 ## 5. Analysis
 
-The primary reason all strategies underperform the baseline on the imbalanced test set is **train-test distribution mismatch**. The baseline trains and tests on the same imbalanced distribution — they align. Imbalance strategies train on corrected (balanced) data but are tested on imbalanced data, so their learned class priors do not match the test set. A model trained on equal class frequencies has no reason to favour benign predictions, but a test set that is 56% benign penalises exactly that.
+With all strategies trained equally for 15 epochs, the results tell a different story. Class-weighted loss now ranks first (81.4%), outperforming the baseline (76.9%). This confirms that when given equal training time, imbalance-aware strategies are effective. The distribution mismatch effect is reduced when strategies are no longer under-trained.
 
-- **Undersampling** discards 54% of benign training images, leaving the model under-trained overall.
-- **Focal Loss** (gamma=1.0) provides moderate focus on hard samples. gamma=2.0 (the original default) would be too aggressive for this mild 3.4:1 ratio, designed for extreme imbalance (100:1+) like object detection.
-- **Class Weights** appears weak on the imbalanced test because it penalises benign errors heavily, making the model hesitant to predict the dominant class — which the imbalanced test mostly contains.
-- **Ensemble** reduces prediction variance but does not address the root distribution mismatch.
+- **Class Weights** performs best — penalising minority class errors pushes the model to learn all three classes properly, and with sufficient training this translates to higher overall accuracy even on the imbalanced test.
+- **Undersampling** improves significantly versus the earlier 5-epoch run, as the model has more iterations to learn from the reduced dataset.
+- **Focal Loss** (gamma=1.0) performs competitively at 74.4%, comparable to oversampling. The moderate gamma is appropriate for the 3.4:1 ratio.
+- **Augmentation** ranks last — random transforms alone without class rebalancing are insufficient.
+- **Baseline per-class recall** shows normal class is still the weakest (55.6%), despite good overall accuracy, illustrating why overall metrics alone are insufficient.
 
 ## 6. Balanced Test Set Evaluation
 
-| Strategy                | Imbalanced Acc | Balanced Acc    | Change          |
-| ----------------------- | -------------- | --------------- | --------------- |
-| Baseline CNN            | 82.1%          | 75.3%           | -6.7%           |
-| Ensemble                | 68.6%          | 51.9%           | -16.7%          |
-| Augmentation            | 67.9%          | 53.1%           | -14.9%          |
-| Focal Loss              | 66.0%          | 51.9%           | -14.2%          |
-| Oversampling            | 62.2%          | 54.3%           | -7.9%           |
-| **Class Weights** | 60.9%          | **69.1%** | **+8.2%** |
-| Undersampling           | 58.3%          | 45.7%           | -12.7%          |
+| Strategy | Imbalanced Acc | Balanced Acc | Bal Precision | Bal Recall | Bal F1 |
+|---|---|---|---|---|---|
+| Class Weights | 81.4% | **79.0%** | 0.8097 | 0.7901 | 0.7886 |
+| Ensemble | 76.9% | 67.9% | 0.7410 | 0.6790 | 0.6735 |
+| Baseline CNN | 76.9% | 74.1% | 0.7737 | 0.7407 | 0.7365 |
+| Focal Loss | 74.4% | 70.4% | 0.7617 | 0.7037 | 0.7018 |
+| Oversampling | 74.4% | 67.9% | 0.7276 | 0.6790 | 0.6823 |
+| Undersampling | 72.4% | 69.1% | 0.7846 | 0.6914 | 0.6913 |
+| Augmentation | 69.9% | 60.5% | 0.7486 | 0.6049 | 0.5401 |
 
-Class-weighted loss jumps from 6th to 1st when evaluated on balanced data (+8.2%). The baseline drops 6.7%, revealing that part of its imbalanced accuracy came from predicting the majority class for uncertain samples rather than from truly learning all class boundaries. Ensemble and augmentation suffer the largest drops (-16.7% and -14.9%), suggesting they overfit to the training distribution more severely. Oversampling drops only 7.9%, comparable to the baseline, confirming that it learned more distribution-agnostic features.
-
-The conclusion is clear: **evaluating strategies only on an imbalanced test set produces a misleading ranking**. The baseline's superiority is partly an illusion created by evaluation methodology.
+Class-weighted loss maintains the top position on both test sets, dropping only 2.4% from imbalanced to balanced evaluation — the smallest drop of all strategies. The baseline drops 2.6%, while ensemble drops 9.0% and augmentation drops 9.4%. This confirms that class-weighted loss learns the most distribution-agnostic features. The balanced evaluation also exposes that strategies with decent imbalanced accuracy (ensemble at 76.9%) can still perform poorly on balanced data (67.9%), revealing hidden bias toward the majority class.
 
 ## 7. Conclusions
 
-1. **Train-test distribution mismatch** is the main reason imbalance strategies appear worse — not that the techniques are ineffective.
-2. **Class-weighted loss is the most robust strategy** — best on balanced evaluation (69.1%), meaning it generalises well regardless of test distribution.
-3. **Overall accuracy is misleading** on imbalanced data. The baseline scores 82.1% overall but only 55.6% recall on the normal class — clinically significant.
-4. **Moderate imbalance (3.4:1) does not need aggressive correction** — high gamma focal loss and heavy resampling over-correct and hurt more than they help.
+1. **Class-weighted loss outperforms the baseline when trained equally** — achieving 81.4% vs baseline 76.9%. However, not all imbalance strategies surpass the baseline; oversampling, undersampling, focal loss, and augmentation all score below it, showing that the choice of strategy matters significantly.
+2. **Class-weighted loss is the most robust strategy** — best on both imbalanced (81.4%) and balanced (79.0%) test sets, with the smallest accuracy drop between the two.
+3. **Overall accuracy is misleading** on imbalanced data. The baseline scores 76.9% overall but only 55.6% recall on the normal class — clinically significant in a medical context.
+4. **Balanced test set evaluation reveals hidden bias** — strategies with similar imbalanced accuracy can differ greatly on balanced data, exposing majority-class dependence.
 5. **Always validate on multiple test distributions** before declaring one model superior to another.
