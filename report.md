@@ -62,6 +62,18 @@ The balanced set is a subset of the imbalanced set — no extra data was collect
 
 **Baseline per-class recall:** benign 80.5%, malignant 83.3%, normal 55.6%
 
+**Balanced Test Set** (27 per class, weighted averages):
+
+| Strategy | Accuracy | Precision | Recall | F1 |
+|---|---|---|---|---|
+| Class Weights | 0.7901 | 0.8097 | 0.7901 | 0.7886 |
+| Baseline CNN | 0.7407 | 0.7737 | 0.7407 | 0.7365 |
+| Focal Loss | 0.7037 | 0.7617 | 0.7037 | 0.7018 |
+| Undersampling | 0.6914 | 0.7846 | 0.6914 | 0.6913 |
+| Ensemble (Bagging) | 0.6790 | 0.7410 | 0.6790 | 0.6735 |
+| Oversampling | 0.6790 | 0.7276 | 0.6790 | 0.6823 |
+| Augmentation | 0.6049 | 0.7486 | 0.6049 | 0.5401 |
+
 ## 5. Analysis
 
 With all strategies trained equally for 15 epochs, the results tell a different story. Class-weighted loss now ranks first (81.4%), outperforming the baseline (76.9%). This confirms that when given equal training time, imbalance-aware strategies are effective. The distribution mismatch effect is reduced when strategies are no longer under-trained.
