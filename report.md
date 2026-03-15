@@ -45,6 +45,8 @@ The balanced set is a subset of the imbalanced set — no extra data was collect
 | Focal Loss | gamma=1.0, downweights easy examples to focus on hard samples |
 | Ensemble (Bagging) | 3 CNNs on bootstrap samples, average logits at inference |
 
+All strategies including the baseline were trained for 15 epochs to ensure a fair comparison.
+
 ## 4. Results
 
 **Imbalanced Test Set** (weighted averages):
@@ -79,7 +81,7 @@ The balanced set is a subset of the imbalanced set — no extra data was collect
 With all strategies trained equally for 15 epochs, the results tell a different story. Class-weighted loss now ranks first (81.4%), outperforming the baseline (76.9%). This confirms that when given equal training time, imbalance-aware strategies are effective. The distribution mismatch effect is reduced when strategies are no longer under-trained.
 
 - **Class Weights** performs best — penalising minority class errors pushes the model to learn all three classes properly, and with sufficient training this translates to higher overall accuracy even on the imbalanced test.
-- **Undersampling** improves significantly versus the earlier 5-epoch run, as the model has more iterations to learn from the reduced dataset.
+- **Undersampling** (72.4%) performs reasonably well — with sufficient training iterations, the model can still learn from the reduced dataset despite discarding majority class samples.
 - **Focal Loss** (gamma=1.0) performs competitively at 74.4%, comparable to oversampling. The moderate gamma is appropriate for the 3.4:1 ratio.
 - **Augmentation** ranks last — random transforms alone without class rebalancing are insufficient.
 - **Baseline per-class recall** shows normal class is still the weakest (55.6%), despite good overall accuracy, illustrating why overall metrics alone are insufficient.
